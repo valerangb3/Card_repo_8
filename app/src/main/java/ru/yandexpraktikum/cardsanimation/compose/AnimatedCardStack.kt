@@ -1,15 +1,20 @@
 package ru.yandexpraktikum.cardsanimation.compose
 
+import android.util.Log
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import kotlin.math.abs
 
 /**
  * Метод для вычисления поворота карты в конкретной позиции
@@ -34,13 +39,35 @@ fun calculateCardRotation(
 fun AnimatedCardStack(cards: List<CardData>) {
     val cardCount = cards.size
     var isRotated by remember { mutableStateOf(false) }
+    var verticalDragOffset by remember { mutableFloatStateOf(0f) }
 
-    // TODO: [Задание 2] Добавьте обработку жестов
+    // TODO: [Задание 2] Добавьте обработку жестов (+)
     // Подсказка: Используйте Modifier.pointerInput() с методом detectDragGestures()
 
     Box(
-        modifier = Modifier,
-        contentAlignment = Alignment.Center
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragEnd = {
+                        handleDragEnd(verticalDragOffset = verticalDragOffset) { newState ->
+                            isRotated = newState
+                        }
+                        verticalDragOffset = 0f
+                    }
+                ) { change, dragAmount ->
+                    change.consume()
+                    val x = dragAmount.x
+                    val y = dragAmount.y
+                    if (abs(x) > abs(y)) {
+                        // todo horizontal swipe
+                        reorderCards(cards = cards)
+                        Log.d("HORIZONTAL", "HORIZONTAL")
+                    } else {
+                        verticalDragOffset += y
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
     ) {
         cards.forEachIndexed { i, cardData ->
             key(cardData.imageResId) {
@@ -49,10 +76,30 @@ fun AnimatedCardStack(cards: List<CardData>) {
                 AnimatedCard(
                     cardIndex = i,
                     targetRotation = targetRotation,
-                    cardData = cardData
+                    cardData = cardData,
+                    onClick = {
+                        isRotated = !isRotated
+                    }
                     // TODO: [Задание 5] Здесь добавьте параметры анимации карты
                 )
             }
+        }
+    }
+}
+
+private fun handleDragEnd(verticalDragOffset: Float, onChangeRotate: (Boolean) -> Unit) {
+    val threshold = 100f
+    when {
+        verticalDragOffset < -threshold -> {
+            // swipe up
+            Log.d("handleDragEnd", "swipe up")
+            onChangeRotate(true)
+        }
+
+        verticalDragOffset > threshold -> {
+            // swipe down
+            Log.d("handleDragEnd", "swipe down")
+            onChangeRotate(false)
         }
     }
 }
