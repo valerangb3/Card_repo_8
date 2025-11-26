@@ -41,6 +41,8 @@ fun AnimatedCardStack(cards: List<CardData>) {
     var isRotated by remember { mutableStateOf(false) }
     var verticalDragOffset by remember { mutableFloatStateOf(0f) }
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+    var animationState by remember { mutableStateOf(CardSwapAnimationState()) }
+
 
     // TODO: [Задание 2] Добавьте обработку жестов (+)
     // Подсказка: Используйте Modifier.pointerInput() с методом detectDragGestures()
@@ -50,27 +52,34 @@ fun AnimatedCardStack(cards: List<CardData>) {
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
-                        // TODO проверить знак verticalDragOffset чтобы определить swipe был вниз или вверх
-                        handleDragEnd(verticalDragOffset = verticalDragOffset) { newState ->
-                            isRotated = newState
+                        if (!animationState.isAnimating) {
+                            // TODO проверить знак verticalDragOffset чтобы определить swipe был вниз или вверх
+                            val threshold = 100f
+                            val isVerticalDominant = abs(verticalDragOffset) > abs(horizontalDragOffset)
+                            val isHorizontalDominant = abs(horizontalDragOffset) > abs(verticalDragOffset)
+                            when {
+                                isVerticalDominant && abs(verticalDragOffset) > threshold -> {
+                                    handleVerticalDragEnd(
+                                        verticalDragOffset = verticalDragOffset,
+                                        onChangeRotate = { newState ->
+                                            isRotated = newState
+                                            animationState = animationState.copy(isAnimating = true)
+                                        }
+                                    )
+                                }
+                                isHorizontalDominant && abs(horizontalDragOffset) > threshold -> {
+                                    animationState = animationState.copy(animationStep = 1, isAnimating = true)
+                                }
+                            }
+                            verticalDragOffset = 0f
+                            horizontalDragOffset = 0f
+                            // animationState = CardSwapAnimationState()
                         }
-                        verticalDragOffset = 0f
-                        horizontalDragOffset = 0f
                     }
                 ) { change, dragAmount ->
                     change.consume()
-                    val x = dragAmount.x
-                    val y = dragAmount.y
-                    // TODO переделать, чтобы суммировать verticalDragOffset и horizontalDragOffset
-                    // TODO а в onDragEnd испльзовать эти значения, чтобы определять horizontal или vertical swipe
-                    if (abs(x) > abs(y)) {
-                        // todo horizontal swipe
-                        // reorderCards(cards = cards)
-                        horizontalDragOffset += x
-                        Log.d("HORIZONTAL", "HORIZONTAL")
-                    } else {
-                        verticalDragOffset += y
-                    }
+                    horizontalDragOffset += dragAmount.x
+                    verticalDragOffset += dragAmount.y
                 }
             },
         contentAlignment = Alignment.Center,
@@ -81,10 +90,20 @@ fun AnimatedCardStack(cards: List<CardData>) {
 
                 AnimatedCard(
                     cardIndex = i,
-                    targetRotation = targetRotation,
                     cardData = cardData,
-                    onClick = {
-                        isRotated = !isRotated
+                    targetRotation = targetRotation,
+                    animationState = if (i == 0) animationState else CardSwapAnimationState(),
+                    onAnimationStepComplete = { step ->
+                        handleAnimationStepComplete(
+                            step = step,
+                            cardIndex = i,
+                            onStepChange = {
+                                val isAnimating = it > 0
+                                animationState = animationState.copy(animationStep = it, isAnimating = isAnimating)
+                            },
+                            onAnimationComplete = { animationState = CardSwapAnimationState() }
+                        )
+                        Log.d("CHECK_HORIZONTAL_OFFSET", "onAnimationStepComplete $animationState")
                     }
                     // TODO: [Задание 5] Здесь добавьте параметры анимации карты
                 )
@@ -93,21 +112,38 @@ fun AnimatedCardStack(cards: List<CardData>) {
     }
 }
 
-private fun handleDragEnd(verticalDragOffset: Float, onChangeRotate: (Boolean) -> Unit) {
-    val threshold = 100f
+private fun handleAnimationStepComplete(
+    step: Int,
+    cardIndex: Int,
+    onStepChange: (Int) -> Unit,
+    onAnimationComplete: () -> Unit
+) {
+    if (cardIndex == 0) {
+        when (step) {
+            1 -> onStepChange(2)
+            2 -> onStepChange(3)
+            3 -> onAnimationComplete()
+        }
+    }
+}
+
+private fun handleVerticalDragEnd(verticalDragOffset: Float, onChangeRotate: (Boolean) -> Unit) {
     when {
-        verticalDragOffset < -threshold -> {
-            // swipe up
+        verticalDragOffset < 0 -> {
             Log.d("handleDragEnd", "swipe up")
             onChangeRotate(true)
         }
 
-        verticalDragOffset > threshold -> {
+        verticalDragOffset > 0 -> {
             // swipe down
             Log.d("handleDragEnd", "swipe down")
             onChangeRotate(false)
         }
     }
+}
+
+private fun handleHorizontalDragEnd() {
+
 }
 
 // Простая функция перестановки карт

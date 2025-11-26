@@ -1,10 +1,8 @@
 package ru.yandexpraktikum.cardsanimation.compose
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,26 +14,72 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun AnimatedCard(
     cardIndex: Int,
     cardData: CardData,
     targetRotation: Float,
-    onClick: () -> Unit
+    animationState: CardSwapAnimationState,
+    onAnimationStepComplete: ((Int) -> Unit)? = null
 ) {
+    val density = LocalDensity.current
+    val (isAnimating, animationStep) = animationState
     // Подсказка: используйте animateFloatAsState для плавной анимации
     val rotation by animateFloatAsState(
         targetValue = targetRotation,
         animationSpec = tween(delayMillis = 200),
+        finishedListener = { if (isAnimating) onAnimationStepComplete?.invoke(0) }
+    )
+    val animatedTranslationX by animateFloatAsState(
+        targetValue = when {
+            isAnimating && animationStep == 1 -> {
+                val moveDistance = with(density) { 50.dp.toPx() }
+                val rotationRad = Math.toRadians(targetRotation.toDouble())
+                moveDistance * cos(rotationRad).toFloat()
+            }
+            isAnimating && animationStep == 2 -> 0f
+            else -> 0f
+        },
+        animationSpec = tween(durationMillis = 300),
+        finishedListener = {
+            if (isAnimating) {
+                when (animationStep) {
+                    1 -> onAnimationStepComplete?.invoke(1)
+                    2 -> onAnimationStepComplete?.invoke(2)
+                }
+            }
+        },
+        label = "translationX"
+    )
+    val animatedTranslationY by animateFloatAsState(
+        targetValue = when {
+            isAnimating && animationStep == 1 -> {
+                val moveDistance = with(density) { 50.dp.toPx() }
+                val rotationRad = Math.toRadians(targetRotation.toDouble())
+                moveDistance * sin(rotationRad).toFloat()
+            }
+            isAnimating && animationStep == 2 -> 0f
+            else -> 0f
+        },
+        animationSpec = tween(durationMillis = 300),
+        finishedListener = {
+            if (isAnimating && animationStep == 1) onAnimationStepComplete?.invoke(1)
+        },
+        label = "translationY"
     )
     /*val cardOffset by animateOffsetAsState(
         targetValue = ,
         animationSpec = tween(delayMillis = 300)
     )*/
+    val shouldBringToFront = isAnimating && animationStep >= 2
 
     Card(
         modifier = Modifier
@@ -44,10 +88,16 @@ fun AnimatedCard(
             .graphicsLayer {
                 rotationZ = rotation
                 transformOrigin = TransformOrigin(0.5f, 1.0f)
+                translationX = if (isAnimating) animatedTranslationX else 0f
+                translationY = if (isAnimating) animatedTranslationY else 0f
             }
-            /*.clickable {
-                onClick()
-            }*/,
+            .let { modifier ->
+                if (shouldBringToFront) {
+                    modifier.zIndex(1000f)
+                } else {
+                    modifier
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = (4 + cardIndex).dp
