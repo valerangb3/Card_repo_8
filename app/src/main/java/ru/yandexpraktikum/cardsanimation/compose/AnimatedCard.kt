@@ -1,6 +1,7 @@
 package ru.yandexpraktikum.cardsanimation.compose
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -31,6 +32,10 @@ fun AnimatedCard(
         targetValue = targetRotation,
         animationSpec = tween(delayMillis = 200),
     )
+    /*val cardOffset by animateOffsetAsState(
+        targetValue = ,
+        animationSpec = tween(delayMillis = 300)
+    )*/
 
     Card(
         modifier = Modifier

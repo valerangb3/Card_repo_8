@@ -40,6 +40,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
     val cardCount = cards.size
     var isRotated by remember { mutableStateOf(false) }
     var verticalDragOffset by remember { mutableFloatStateOf(0f) }
+    var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
 
     // TODO: [Задание 2] Добавьте обработку жестов (+)
     // Подсказка: Используйте Modifier.pointerInput() с методом detectDragGestures()
@@ -49,18 +50,23 @@ fun AnimatedCardStack(cards: List<CardData>) {
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
+                        // TODO проверить знак verticalDragOffset чтобы определить swipe был вниз или вверх
                         handleDragEnd(verticalDragOffset = verticalDragOffset) { newState ->
                             isRotated = newState
                         }
                         verticalDragOffset = 0f
+                        horizontalDragOffset = 0f
                     }
                 ) { change, dragAmount ->
                     change.consume()
                     val x = dragAmount.x
                     val y = dragAmount.y
+                    // TODO переделать, чтобы суммировать verticalDragOffset и horizontalDragOffset
+                    // TODO а в onDragEnd испльзовать эти значения, чтобы определять horizontal или vertical swipe
                     if (abs(x) > abs(y)) {
                         // todo horizontal swipe
-                        reorderCards(cards = cards)
+                        // reorderCards(cards = cards)
+                        horizontalDragOffset += x
                         Log.d("HORIZONTAL", "HORIZONTAL")
                     } else {
                         verticalDragOffset += y
