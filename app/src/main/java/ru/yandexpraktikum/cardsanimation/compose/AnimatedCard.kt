@@ -32,11 +32,11 @@ fun AnimatedCard(
 ) {
     val density = LocalDensity.current
     val (isAnimating, animationStep) = animationState
-    // Подсказка: используйте animateFloatAsState для плавной анимации
+
     val rotation by animateFloatAsState(
         targetValue = targetRotation,
-        animationSpec = tween(delayMillis = 200),
-        finishedListener = { if (isAnimating) onAnimationStepComplete?.invoke(0) }
+        animationSpec = tween(durationMillis = if (animationStep == 3) 300 else 800),
+        finishedListener = { if (animationStep == 3 && isAnimating) onAnimationStepComplete?.invoke(3) }
     )
     val animatedTranslationX by animateFloatAsState(
         targetValue = when {
@@ -71,20 +71,20 @@ fun AnimatedCard(
         },
         animationSpec = tween(durationMillis = 300),
         finishedListener = {
-            if (isAnimating && animationStep == 1) onAnimationStepComplete?.invoke(1)
+            if (isAnimating) {
+                when (animationStep) {
+                    1 -> onAnimationStepComplete?.invoke(1)
+                    2 -> onAnimationStepComplete?.invoke(2)
+                }
+            }
         },
         label = "translationY"
     )
-    /*val cardOffset by animateOffsetAsState(
-        targetValue = ,
-        animationSpec = tween(delayMillis = 300)
-    )*/
     val shouldBringToFront = isAnimating && animationStep >= 2
 
     Card(
         modifier = Modifier
             .size(width = 100.dp, height = 160.dp)
-            // TODO: [Задание 5] Добавьте анимацию карты при свайпе вправо или влево
             .graphicsLayer {
                 rotationZ = rotation
                 transformOrigin = TransformOrigin(0.5f, 1.0f)
