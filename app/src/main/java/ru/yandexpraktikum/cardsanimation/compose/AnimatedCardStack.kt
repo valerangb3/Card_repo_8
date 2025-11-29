@@ -1,6 +1,5 @@
 package ru.yandexpraktikum.cardsanimation.compose
 
-import android.util.Log
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -43,14 +42,12 @@ fun AnimatedCardStack(cards: List<CardData>) {
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
     var animationState by remember { mutableStateOf(CardSwapAnimationState()) }
     var cards by remember { mutableStateOf(cards) }
-    // TODO: [Задание 2] Добавьте обработку жестов (+)
     Box(
         modifier = Modifier
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
                         if (!animationState.isAnimating) {
-                            // TODO проверить знак verticalDragOffset чтобы определить swipe был вниз или вверх
                             val threshold = 100f
                             val isVerticalDominant =
                                 abs(verticalDragOffset) > abs(horizontalDragOffset)
@@ -116,7 +113,6 @@ fun AnimatedCardStack(cards: List<CardData>) {
                             }
                         )
                     }
-                    // TODO: [Задание 5] Здесь добавьте параметры анимации карты
                 )
             }
         }
@@ -129,7 +125,6 @@ private fun handleAnimationStepComplete(
     onStepChange: (Int) -> Unit,
     onAnimationComplete: () -> Unit
 ) {
-    Log.d("onDrag handleAnimationStepComplete", "handleAnimationStepComplete index # $cardIndex")
     if (cardIndex == 0) {
         when (step) {
             1 -> onStepChange(2)
@@ -146,11 +141,6 @@ private fun handleVerticalDragEnd(verticalDragOffset: Float, onChangeRotate: (Bo
     }
 }
 
-private fun handleHorizontalDragEnd() {
-
-}
-
-// Простая функция перестановки карт
 fun reorderCards(cards: List<CardData>): List<CardData> {
     return cards.drop(1) + cards.first()
 }
